@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PackFlow AI — Packaging PLM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f1a;--bg2:#111827;--bg3:#1a2235;--bg4:#1f2a3d;
+  --teal:#12b89a;--teal2:#0d9e84;--teal-dim:#0a3d34;--teal-glow:rgba(18,184,154,0.12);
+  --amber:#f59e0b;--amber-dim:#3a2900;
+  --coral:#ef4444;--coral-dim:#3a0f0f;
+  --blue:#3b82f6;--blue-dim:#0f1f3a;
+  --purple:#a78bfa;--purple-dim:#1e0f3a;
+  --green:#22c55e;--green-dim:#0a2a14;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:#1e2d45;--border2:#243447;
+  --card:#111827;--card2:#141d2e;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;overflow:hidden}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .25s ease;overflow:hidden}
+.sidebar.collapsed{width:56px;min-width:56px}
+.sidebar-head{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-mark{width:28px;height:28px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#000;flex-shrink:0;font-family:var(--mono)}
+.logo-text{white-space:nowrap;overflow:hidden}
+.logo-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-section{padding:14px 14px 4px;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);white-space:nowrap;overflow:hidden}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;white-space:nowrap;overflow:hidden;font-size:12.5px;color:var(--text2)}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{border-left-color:var(--teal);background:var(--teal-glow);color:var(--teal)}
+.nav-icon{width:16px;text-align:center;font-size:13px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--coral);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;font-family:var(--mono)}
+.nav-badge.amber{background:var(--amber);color:#000}
+.nav-badge.teal{background:var(--teal);color:#000}
+.sidebar-foot{padding:10px 14px;border-top:1px solid var(--border)}
+.collapse-btn{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);cursor:pointer;padding:6px 0}
+.collapse-btn:hover{color:var(--text)}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;background:var(--bg2);flex-shrink:0}
+.topbar-title{font-size:13px;font-weight:600;color:var(--text)}
+.topbar-sub{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.ai-badge{display:flex;align-items:center;gap:5px;background:var(--teal-glow);border:1px solid var(--teal-dim);color:var(--teal);padding:3px 10px;border-radius:20px;font-size:10px;font-family:var(--mono)}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── CARDS & GRIDS ── */
+.stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.teal::before{background:var(--teal)}
+.stat-card.amber::before{background:var(--amber)}
+.stat-card.coral::before{background:var(--coral)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.purple::before{background:var(--purple)}
+.stat-card.green::before{background:var(--green)}
+.stat-val{font-size:22px;font-weight:600;font-family:var(--mono);line-height:1.2;margin-bottom:2px}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.stat-delta{font-size:10px;margin-top:4px;font-family:var(--mono)}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--coral)}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text2)}
+.section-actions{display:flex;gap:8px}
+
+/* ── TABLE ── */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--bg3);padding:9px 14px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg3)}
+.td-main{color:var(--text);font-weight:500}
+.td-mono{font-family:var(--mono);font-size:11px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 8px;border-radius:12px;font-family:var(--mono);white-space:nowrap}
+.badge.teal{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(18,184,154,.2)}
+.badge.amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.badge.coral{background:var(--coral-dim);color:var(--coral);border:1px solid rgba(239,68,68,.2)}
+.badge.blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.badge.purple{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(167,139,250,.2)}
+.badge.green{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.badge.gray{background:#1e2d45;color:var(--text3);border:1px solid var(--border)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-family:var(--font);cursor:pointer;border:1px solid;transition:all .15s;font-weight:500}
+.btn-primary{background:var(--teal);color:#000;border-color:var(--teal)}
+.btn-primary:hover{background:#0fa88d}
+.btn-ghost{background:transparent;color:var(--text2);border-color:var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-danger{background:var(--coral-dim);color:var(--coral);border-color:rgba(239,68,68,.3)}
+
+/* ── AI INSIGHT CARD ── */
+.ai-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;position:relative;overflow:hidden;transition:border-color .15s}
+.ai-card:hover{border-color:var(--border2)}
+.ai-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px}
+.ai-card.high::before{background:var(--coral)}
+.ai-card.medium::before{background:var(--amber)}
+.ai-card.low::before{background:var(--blue)}
+.ai-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ai-body{flex:1}
+.ai-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.ai-title{font-size:12.5px;font-weight:600;color:var(--text)}
+.ai-desc{font-size:11.5px;color:var(--text2);line-height:1.55;margin-bottom:8px}
+.ai-action{font-size:11px;color:var(--teal);font-family:var(--mono);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.ai-action:hover{text-decoration:underline}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{background:var(--bg3);border-radius:4px;height:6px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:4px;transition:width .6s ease}
+
+/* ── MODAL / SLIDE PANEL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;backdrop-filter:blur(2px)}
+.overlay.open{display:block}
+.panel{position:fixed;right:-600px;top:0;bottom:0;width:580px;background:var(--bg2);border-left:1px solid var(--border);z-index:201;display:flex;flex-direction:column;transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden}
+.panel.open{right:0}
+.panel-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.panel-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px}
+.panel-sub{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.panel-close{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:14px;flex-shrink:0}
+.panel-close:hover{color:var(--text);background:var(--bg4)}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;padding:0 20px}
+.ptab{padding:10px 14px;font-size:12px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.ptab:hover{color:var(--text)}
+.ptab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.panel-body{flex:1;overflow-y:auto;padding:20px}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:1px;background:var(--border2)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-dot{position:absolute;left:-24px;top:3px;width:14px;height:14px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:7px;background:var(--bg2)}
+.tl-dot.done{border-color:var(--teal);color:var(--teal)}
+.tl-dot.blocked{border-color:var(--coral);color:var(--coral)}
+.tl-dot.pending{border-color:var(--border2);color:var(--text3)}
+.tl-title{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px}
+.tl-date{font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px}
+.tl-detail{font-size:11.5px;color:var(--text2);line-height:1.5}
+
+/* ── BOM TABLE ── */
+.bom-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+.bom-table th{background:var(--bg3);padding:7px 10px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border:1px solid var(--border)}
+.bom-table td{padding:8px 10px;border:1px solid var(--border);font-size:11.5px;color:var(--text2);vertical-align:middle}
+.bom-table tr:hover td{background:var(--bg3)}
+.bom-total{text-align:right;padding:8px 10px;font-size:13px;font-weight:600;color:var(--teal);font-family:var(--mono);border-top:1px solid var(--border2)}
+
+/* ── CHECKLIST ── */
+.checklist-item{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.checklist-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+.check-icon.done{background:var(--green-dim);color:var(--green)}
+.check-icon.fail{background:var(--coral-dim);color:var(--coral)}
+.check-icon.warn{background:var(--amber-dim);color:var(--amber)}
+.check-label{font-size:12.5px;font-weight:500;color:var(--text);margin-bottom:2px}
+.check-detail{font-size:11px;color:var(--text2)}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:4px;background:var(--bg3);border-radius:8px;padding:4px;margin-bottom:20px}
+.tab-item{flex:1;text-align:center;padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text3);transition:all .15s}
+.tab-item.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tab-item:hover:not(.active){color:var(--text)}
+
+/* ── SEARCH & FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.search-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:7px 12px;font-size:12px;color:var(--text);font-family:var(--font);outline:none}
+.search-box:focus{border-color:var(--teal)}
+.search-box::placeholder{color:var(--text3)}
+.filter-chip{padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--border);color:var(--text3);transition:all .15s}
+.filter-chip.active{border-color:var(--teal);color:var(--teal);background:var(--teal-glow)}
+.filter-chip:hover:not(.active){color:var(--text)}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px;color:var(--text3)}
+.empty-icon{font-size:32px;margin-bottom:12px}
+.empty-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty-desc{font-size:12px;line-height:1.6}
+
+/* ── ECO APPROVAL FLOW ── */
+.approval-flow{display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;padding-bottom:4px}
+.flow-step{display:flex;align-items:center;gap:0;flex-shrink:0}
+.flow-node{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;text-align:center;min-width:100px}
+.flow-node.done{border-color:var(--teal);background:var(--teal-dim)}
+.flow-node.active{border-color:var(--amber);background:var(--amber-dim);animation:borderPulse 2s ease infinite}
+@keyframes borderPulse{0%,100%{border-color:var(--amber)}50%{border-color:rgba(245,158,11,.3)}}
+.flow-node.blocked{border-color:var(--coral);background:var(--coral-dim)}
+.flow-node-label{font-size:10px;color:var(--text2);margin-bottom:3px}
+.flow-node-status{font-size:11px;font-weight:600}
+.flow-arrow{color:var(--text3);padding:0 6px;font-size:16px}
+
+/* ── COSTING ENGINE ── */
+.cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.cost-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+.cost-card-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:4px}
+.cost-card-val{font-size:20px;font-weight:600;font-family:var(--mono);color:var(--text)}
+.cost-card-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.cost-breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.cost-breakdown-row:last-child{border-bottom:none;font-weight:600;color:var(--teal)}
+.cost-label{font-size:12px;color:var(--text2)}
+.cost-val{font-size:12px;font-family:var(--mono);color:var(--text)}
+
+/* ── COMPLIANCE ── */
+.compliance-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.compliance-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+.compliance-score{font-size:32px;font-weight:700;font-family:var(--mono);margin-bottom:4px}
+.compliance-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.compliance-bar-label{display:flex;justify-content:space-between;margin-bottom:4px;margin-top:10px}
+
+/* ── KANBAN ── */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.kanban-col{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.kanban-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.kanban-col-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)}
+.kanban-count{background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-size:10px;font-family:var(--mono);padding:1px 6px;color:var(--text3)}
+.kanban-body{padding:10px}
+.kanban-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.kanban-card:hover{border-color:var(--border2)}
+.kc-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px}
+.kc-customer{font-size:10px;color:var(--text3);margin-bottom:6px}
+.kc-tags{display:flex;gap:4px;flex-wrap:wrap}
+
+/* ── DIE LIBRARY ── */
+.die-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.die-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .15s}
+.die-card:hover{border-color:var(--border2);background:var(--bg3)}
+.die-visual{width:100%;height:80px;background:var(--bg3);border-radius:6px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.die-shape{border:2px dashed var(--teal);width:60%;height:70%;position:relative}
+.die-id{font-size:10px;font-family:var(--mono);color:var(--teal);margin-bottom:4px}
+.die-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}
+.die-meta{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── CUSTOMER PORTAL ── */
+.portal-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.portal-card-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.portal-card-body{padding:14px 16px}
+.proof-thumb{width:80px;height:80px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);font-family:var(--mono);flex-shrink:0}
+.comment-item{background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.comment-author{font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px}
+.comment-text{font-size:11.5px;color:var(--text2);line-height:1.5}
+.comment-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:4px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── TOOLTIP ── */
+.tooltip{position:relative}
+.tooltip::after{content:attr(data-tip);position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:#1e2d45;color:var(--text);font-size:10px;padding:4px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
+.tooltip:hover::after{opacity:1}
+
+/* ── NOTIFICATION DOT ── */
+.notif-wrap{position:relative;display:inline-flex}
+.notif-dot{position:absolute;top:-2px;right:-2px;width:7px;height:7px;background:var(--coral);border-radius:50%;border:1px solid var(--bg2)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="logo-mark">PF</div>
+      <div class="logo-text">
+        <div class="logo-name">PackFlow AI</div>
+        <div class="logo-sub">Packaging PLM</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Core</div>
+      <div class="nav-item active" onclick="showModule('portfolio')"><span class="nav-icon">◈</span>Portfolio Health</div>
+      <div class="nav-item" onclick="showModule('design')"><span class="nav-icon">⬡</span>Design Library</div>
+      <div class="nav-item" onclick="showModule('materials')"><span class="nav-icon">⬢</span>Material Lab</div>
+      <div class="nav-item" onclick="showModule('sustainability')"><span class="nav-icon">◉</span>Sustainability</div>
+      <div class="nav-item" onclick="showModule('vault')"><span class="nav-icon">▣</span>The Vault</div>
+      <div class="nav-section">New Modules</div>
+      <div class="nav-item" onclick="showModule('eco')"><span class="nav-icon">🔄</span>Change Orders (ECO)<span class="nav-badge coral">3</span></div>
+      <div class="nav-item" onclick="showModule('approvals')"><span class="nav-icon">✉</span>Customer Approvals<span class="nav-badge amber">7</span></div>
+      <div class="nav-item" onclick="showModule('dies')"><span class="nav-icon">✦</span>Die Library</div>
+      <div class="nav-item" onclick="showModule('costing')"><span class="nav-icon">₹</span>Costing Engine</div>
+      <div class="nav-item" onclick="showModule('compliance')"><span class="nav-icon">⚖</span>Compliance</div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="collapse-btn" onclick="toggleSidebar()">
+        <span id="collapse-icon">←</span><span class="logo-text" style="font-size:11px;color:var(--text3)">Collapse</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Portfolio Health</div>
+        <div class="topbar-sub" id="topbar-sub">Active die-lines, print runs, and lifecycle status</div>
+      </div>
+      <div class="topbar-right">
+        <div class="ai-badge"><div class="ai-dot"></div>Proactive Intelligence · Live</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0d9e84,#12b89a);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;cursor:pointer" class="notif-wrap">PF<div class="notif-dot"></div></div>
+      </div>
+    </div>
+    <div class="content" id="main-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PANEL ═══════════ -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="panel-title">Project Detail</div>
+      <div class="panel-sub" id="panel-sub"></div>
+    </div>
+    <div class="panel-close" onclick="closePanel()">✕</div>
+  </div>
+  <div class="panel-tabs" id="panel-tabs"></div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const PROJECTS = [
+  {
+    id:'LB001', customer:'Lumière Beauty', type:'rigid', name:'Eco-Friendly Cosmetic Box',
+    status:'Under Review', statusColor:'amber', pcr:74, pcrTarget:80, co2:1.2, waste:3.8, signals:3,
+    tags:['PCR','Rigid'], plant:'Mumbai Plant 1',
+    lifecycle:[
+      {stage:'Concept',date:'Jan 10',done:true,detail:'Client brief approved. Lumière Beauty confirmed eco-packaging brief with 80% PCR target.'},
+      {stage:'Structural Design',date:'Jan 28',done:true,detail:'Die-line finalised after 3 revisions. 18pt SBS Board structure confirmed. File: DL-LB-2024-001.dxf v3.'},
+      {stage:'Material Selection',date:'Feb 12',done:true,detail:'18pt SBS Board (250gsm FSC-certified) selected. Soft-Touch Matte Laminate + soy ink confirmed.'},
+      {stage:'Artwork Pre-flight',date:'Feb 28',done:false,blocked:true,detail:'BLOCKED: Waiting on Pantone 485 colour approval from Lumière Beauty brand team. v3 artwork submitted.'},
+      {stage:'Production Release',date:'Mar 15',done:false,blocked:false,detail:'Target date — pending artwork approval. Will trigger BOM lock and procurement.'},
+      {stage:'Market-Ready',date:'Apr 1',done:false,blocked:false,detail:'Target market-ready date for Q2 launch.'},
+    ],
+    bom:[
+      {cat:'Substrate',mat:'18pt SBS Board',spec:'250gsm FSC-certified',qty:'1,000 sheets',cost:'₹0.48',pcr:'60%',co2:'0.31 kg'},
+      {cat:'Treatment',mat:'Soft-Touch Matte Laminate',spec:'15µm matte OPP',qty:'1,000 sheets',cost:'₹0.12',pcr:'—',co2:'0.09 kg'},
+      {cat:'Ink',mat:'Soy-Based CMYK Ink Set',spec:'4-colour process',qty:'1,000 runs',cost:'₹0.06',pcr:'—',co2:'0.04 kg'},
+      {cat:'Tooling',mat:'Steel-Rule Die',spec:'Bespoke crease & cut',qty:'1 unit',cost:'₹380',pcr:'—',co2:'12.0 kg'},
+      {cat:'Adhesive',mat:'Water-Based PVA',spec:'Low-VOC formula',qty:'1,000 units',cost:'₹0.02',pcr:'—',co2:'0.01 kg'},
+    ],
+    bomTotal:'₹1,060',
+    insights:[
+      {icon:'♻',title:'Soy-ink switch saves 12% carbon tax',priority:'high',delta:'↓12%',desc:'Current petroleum-based ink adds 0.04 kg CO₂e per run. Switching to soy-based ink reduces carbon tax by 12% with zero impact on drying time.',action:'→ Switch to supplier SKU INK-SOY-4C'},
+      {icon:'⚠',title:'Lead time spike: recycled kraft paper',priority:'high',desc:'Current lead time for recycled kraft paper has spiked by 15 days due to port congestion in Chennai.',action:'→ Switch to GreenPaper Co. (Pune)'},
+      {icon:'◎',title:'4% higher gluer waste on similar geometry',priority:'medium',delta:'↓4%',desc:'This structural design caused 4% higher waste in the gluer on 2 previous similar runs.',action:'→ Adjust glue flap by +2mm'},
+    ],
+    gate:[
+      {label:'Structural specs approved',status:'done',detail:'Sign-off Feb 12. Die-line v3 confirmed.'},
+      {label:'Artwork pre-flighted',status:'fail',detail:'Pantone 485 approval pending from Lumière Beauty brand team.'},
+      {label:'Palletisation optimised',status:'done',detail:'96 units/layer, 8 layers.'},
+      {label:'Sustainability targets met',status:'fail',detail:'PCR at 74% vs 80% target. 6% gap remains.'},
+    ]
+  },
+  {
+    id:'HC007', customer:'HarvestCo Logistics', type:'corrugated', name:'Bulk Shipping Crate',
+    status:'Approved', statusColor:'teal', pcr:71, pcrTarget:70, co2:4.1, waste:2.1, signals:1,
+    tags:['Corrugated','B2B'], plant:'Pune Plant 2',
+    lifecycle:[
+      {stage:'Concept',date:'Dec 5',done:true,detail:'Load-bearing spec confirmed. BCT target: 800N.'},
+      {stage:'Structural Design',date:'Dec 20',done:true,detail:'Double-wall BCT 800N. E/B flute combination.'},
+      {stage:'Material Selection',date:'Jan 8',done:true,detail:'200gsm kraft liner / 112gsm semi-chem medium selected.'},
+      {stage:'Artwork Pre-flight',date:'Jan 15',done:true,detail:'1-colour flexo approved. Simple black text logo only.'},
+      {stage:'Production Release',date:'Jan 22',done:true,detail:'Press approval signed. BOM locked. Production order released.'},
+      {stage:'Market-Ready',date:'Feb 1',done:true,detail:'In active production run. Supplying ongoing logistics orders.'},
+    ],
+    bom:[
+      {cat:'Substrate',mat:'Double-wall Corrugated (E/B Flute)',spec:'200gsm liner / 112gsm medium',qty:'500 blanks',cost:'₹1.20',pcr:'71%',co2:'0.82 kg'},
+      {cat:'Ink',mat:'Flexo Water-Based Ink',spec:'1-colour black',qty:'500 runs',cost:'₹0.03',pcr:'—',co2:'0.02 kg'},
+      {cat:'Tooling',mat:'Rotary Die-Cut Tool',spec:'1200mm width',qty:'1 unit',cost:'₹720',pcr:'—',co2:'18.0 kg'},
+    ],
+    bomTotal:'₹1,335',
+    insights:[
+      {icon:'♻',title:'Kraft liner from 100% OCC available',priority:'medium',desc:'GreenPaper Co. now offers 100% OCC kraft liner at same BCT spec. Would increase PCR to 89%.',action:'→ Evaluate OCC liner substitution'},
+    ],
+    gate:[
+      {label:'Structural specs approved',status:'done',detail:'BCT 800N confirmed. Double-wall corrugated structure validated.'},
+      {label:'Artwork pre-flighted',status:'done',detail:'1-colour black flexo artwork approved.'},
+      {label:'Palletisation optimised',status:'done',detail:'Pallet configuration confirmed for shipping efficiency.'},
+      {label:'Sustainability targets met',status:'done',detail:'PCR 71% exceeds 70% target.'},
+    ]
+  },
+  {
+    id:'GC003', customer:'Graze & Co.', type:'flexible', name:'Flexible Pouch — Snack Series',
+    status:'In Design', statusColor:'blue', pcr:22, pcrTarget:40, co2:0.8, waste:5.2, signals:2,
+    tags:['Flexible','Food-Safe'], plant:'Chennai Plant 4',
+    lifecycle:[
+      {stage:'Concept',date:'Feb 1',done:true,detail:'SKU range of 6 variants confirmed. Food-safe packaging required.'},
+      {stage:'Structural Design',date:'Mar 10',done:false,blocked:false,detail:'IN PROGRESS: Ziploc reseal mechanism under review.'},
+      {stage:'Material Selection',date:'Mar 25',done:false,blocked:false,detail:'Pending — awaiting structural design confirmation.'},
+      {stage:'Artwork Pre-flight',date:'Apr 10',done:false,blocked:false,detail:'Artwork v2 in pre-flight. 8-colour rotogravure design.'},
+      {stage:'Production Release',date:'Apr 28',done:false,blocked:false,detail:'Target date.'},
+      {stage:'Market-Ready',date:'May 15',done:false,blocked:false,detail:'Target date for summer launch.'},
+    ],
+    bom:[
+      {cat:'Substrate',mat:'PET/PE Laminate Film',spec:'12µm PET + 80µm PE sealant',qty:'2,000 pouches',cost:'₹0.18',pcr:'22%',co2:'0.19 kg'},
+      {cat:'Ink',mat:'Gravure Solvent Ink',spec:'8-colour rotogravure',qty:'2,000 runs',cost:'₹0.09',pcr:'—',co2:'0.07 kg'},
+      {cat:'Treatment',mat:'Matte OPP Overprint',spec:'20µm OPP varnish',qty:'2,000 pouches',cost:'₹0.04',pcr:'—',co2:'0.03 kg'},
+    ],
+    bomTotal:'₹620',
+    insights:[
+      {icon:'♻',title:'Bio-PE alternative closes PCR gap',priority:'medium',delta:'↑3% cost',desc:'Switching PE sealant to bio-based PE (sugarcane) would increase PCR-equivalent from 22% to 38%.',action:'→ Evaluate bio-PE from NatureWorks'},
+      {icon:'⚠',title:'Solvent ink — upcoming EU regulation',priority:'low',desc:'EU EPR 2026 may restrict solvent-based gravure inks for food-contact packaging. Sust. score: 31/100.',action:'→ Request water-based gravure trial'},
+    ],
+    gate:[
+      {label:'Structural specs approved',status:'fail',detail:'Reseal mechanism still under review.'},
+      {label:'Artwork pre-flighted',status:'fail',detail:'Not yet at this stage.'},
+      {label:'Palletisation optimised',status:'fail',detail:'Not yet at this stage.'},
+      {label:'Sustainability targets met',status:'fail',detail:'PCR 22% vs 40% target. Significant gap.'},
+    ]
+  },
+  {
+    id:'AC012', customer:'Artisanal Co.', type:'rigid', name:'Premium Gift Set Box',
+    status:'Market-Ready', statusColor:'green', pcr:52, pcrTarget:50, co2:2.1, waste:1.8, signals:0,
+    tags:['Rigid','Premium'], plant:'Delhi Plant 3',
+    lifecycle:[
+      {stage:'Concept',date:'Sep 5',done:true,detail:'Premium gift packaging brief confirmed. Tactile finish and foil stamping requested.'},
+      {stage:'Structural Design',date:'Sep 20',done:true,detail:'Rigid box structure. STEP CAD file CAD-AC-2023-012.step v2 finalised.'},
+      {stage:'Material Selection',date:'Oct 1',done:true,detail:'24pt Coated Duplex Board 350gsm selected. Gloss UV + gold foil stamp specified.'},
+      {stage:'Artwork Pre-flight',date:'Oct 18',done:true,detail:'Artwork ART-AC-2023-012-v5.pdf approved after 5 revision rounds.'},
+      {stage:'Production Release',date:'Nov 2',done:true,detail:'Press approval signed. Full production run completed.'},
+      {stage:'Market-Ready',date:'Nov 15',done:true,detail:'LIVE — supplying Q4 gifting season orders.'},
+    ],
+    bom:[
+      {cat:'Substrate',mat:'24pt Coated Duplex Board',spec:'350gsm coated 1-side',qty:'800 sheets',cost:'₹0.64',pcr:'52%',co2:'0.42 kg'},
+      {cat:'Treatment',mat:'Gloss UV Coating',spec:'Spot UV on logo',qty:'800 sheets',cost:'₹0.15',pcr:'—',co2:'0.10 kg'},
+      {cat:'Treatment',mat:'Gold Foil Stamp',spec:'Metallic 120µm',qty:'800 sheets',cost:'₹0.22',pcr:'—',co2:'0.14 kg'},
+    ],
+    bomTotal:'₹808',
+    insights:[],
+    gate:[
+      {label:'Structural specs approved',status:'done',detail:'Rigid box structure confirmed.'},
+      {label:'Artwork pre-flighted',status:'done',detail:'v5 artwork approved after 5 rounds.'},
+      {label:'Palletisation optimised',status:'done',detail:'Palletisation scheme confirmed.'},
+      {label:'Sustainability targets met',status:'done',detail:'PCR 52% exceeds 50% target.'},
+    ]
+  }
+];
+
+const ECOS = [
+  {id:'ECO-2024-041', sku:'LB001', skuName:'Eco-Friendly Cosmetic Box', customer:'Lumière Beauty', type:'Artwork Change', raised:'Mar 18, 2025', priority:'high', status:'In Review', reason:'Brand refresh — new Pantone 485 gradient replacing flat colour. Affects all variants.', affectedSkus:3, impactLevel:'Medium', owner:'Priya Mehta'},
+  {id:'ECO-2024-039', sku:'GC003', skuName:'Flexible Pouch — Snack Series', customer:'Graze & Co.', type:'Material Change', raised:'Mar 12, 2025', priority:'high', status:'Approved', reason:'Switching PE sealant to bio-based PE to hit 40% PCR target. Regulatory and sustainability.', affectedSkus:6, impactLevel:'High', owner:'Rahul Nair'},
+  {id:'ECO-2024-037', sku:'HC007', skuName:'Bulk Shipping Crate', customer:'HarvestCo Logistics', type:'Structural Change', raised:'Feb 28, 2025', priority:'medium', status:'Pending', reason:'Customer requests additional corner reinforcement to prevent BCT failure during monsoon storage.', affectedSkus:1, impactLevel:'Low', owner:'Ananya Singh'},
+  {id:'ECO-2024-035', sku:'AC012', skuName:'Premium Gift Set Box', customer:'Artisanal Co.', type:'Regulatory Update', raised:'Feb 14, 2025', priority:'low', status:'Closed', reason:'Added FSC-C logo to artwork per retailer mandate. Artwork-only change, no structural impact.', affectedSkus:1, impactLevel:'Low', owner:'Vikram Iyer'},
+];
+
+const APPROVALS = [
+  {id:'APR-001', project:'Eco-Friendly Cosmetic Box', customer:'Lumière Beauty', version:'v3', type:'Colour Proof', sent:'Feb 20, 2025', dueIn:'2 days', status:'Awaiting', urgent:true, proofNotes:'Pantone 485 gradient — check bottom panel match', comments:[
+    {author:'Sarah Chen (Lumière)',text:'The gold gradient on the side panel is slightly off — needs to be warmer. Can you send a revised proof?',time:'Feb 22, 10:41 AM'},
+    {author:'Priya Mehta (Parksons)',text:'Understood. Revised proof with warmer Pantone 485C being prepared. ETA: 24 hours.',time:'Feb 22, 11:15 AM'},
+  ]},
+  {id:'APR-002', project:'Flexible Pouch — Snack Series', customer:'Graze & Co.', version:'v2', type:'Pre-press Proof', sent:'Mar 8, 2025', dueIn:'5 days', status:'Awaiting', urgent:false, proofNotes:'8-colour rotogravure, food imagery needs sign-off', comments:[
+    {author:'James Okafor (Graze)',text:'Image resolution on the berry pack looks slightly pixelated at zoom. Is this print artefact or file issue?',time:'Mar 9, 09:22 AM'},
+  ]},
+  {id:'APR-003', project:'Bulk Shipping Crate', customer:'HarvestCo Logistics', version:'v1', type:'Sample Sign-off', sent:'Jan 20, 2025', dueIn:'—', status:'Approved', urgent:false, proofNotes:'Physical sample dispatched. BCT 800N test cert enclosed.', comments:[]},
+  {id:'APR-004', project:'Premium Gift Set Box', customer:'Artisanal Co.', version:'v5', type:'Press Approval', sent:'Oct 18, 2024', dueIn:'—', status:'Approved', urgent:false, proofNotes:'Final press approval — all elements confirmed.', comments:[]},
+  {id:'APR-005', project:'Herbal Tea Box', customer:'ZenLeaf Organics', version:'v1', type:'Structural Proof', sent:'Mar 15, 2025', dueIn:'1 day', status:'Awaiting', urgent:true, proofNotes:'New tuck-end design — confirm glue tab width acceptable', comments:[]},
+  {id:'APR-006', project:'Pharma Blister Pack Insert', customer:'Cipla Pharma', version:'v2', type:'Regulatory Proof', sent:'Mar 16, 2025', dueIn:'3 days', status:'Awaiting', urgent:false, proofNotes:'Schedule M compliance — Braille spec and QR code placement', comments:[]},
+  {id:'APR-007', project:'Snack Multipack Tray', customer:'Graze & Co.', version:'v1', type:'Colour Proof', sent:'Mar 17, 2025', dueIn:'4 days', status:'In Review', urgent:false, proofNotes:'4-colour flexo — PMS 485 C + black + white background', comments:[]},
+];
+
+const DIES = [
+  {id:'DIE-LB-001', name:'Cosmetic Box Tuck-End', sku:'LB001', customer:'Lumière Beauty', type:'Steel-Rule', size:'320×240mm', crease:4, status:'In Use', plant:'Mumbai P1', cost:'₹42,000', made:'Jan 2025', runs:3, shape:'rect'},
+  {id:'DIE-HC-007', name:'Bulk Crate Rotary', sku:'HC007', customer:'HarvestCo Logistics', type:'Rotary', size:'1200mm width', crease:2, status:'In Use', plant:'Pune P2', cost:'₹72,000', made:'Dec 2024', runs:12, shape:'rect-wide'},
+  {id:'DIE-GC-003', name:'Snack Pouch Stand-Up', sku:'GC003', customer:'Graze & Co.', type:'Flat-Bed', size:'180×260mm', crease:3, status:'Available', plant:'Chennai P4', cost:'₹28,000', made:'Feb 2025', runs:0, shape:'tall'},
+  {id:'DIE-AC-012', name:'Gift Box Lid & Base', sku:'AC012', customer:'Artisanal Co.', type:'Steel-Rule', size:'280×280mm', crease:6, status:'In Use', plant:'Delhi P3', cost:'₹54,000', made:'Sep 2024', runs:8, shape:'square'},
+  {id:'DIE-ZL-001', name:'Tea Carton Tuck-End', sku:'ZL001', customer:'ZenLeaf Organics', type:'Steel-Rule', size:'180×90mm', crease:4, status:'Available', plant:'Mumbai P1', cost:'₹18,500', made:'Nov 2024', runs:2, shape:'slim'},
+  {id:'DIE-CP-004', name:'Pharma Insert Tray', sku:'CP004', customer:'Cipla Pharma', type:'Steel-Rule', size:'220×140mm', crease:8, status:'Maintenance', plant:'Delhi P3', cost:'₹31,000', made:'Jun 2024', runs:24, shape:'rect'},
+];
+
+const MATERIALS = [
+  {name:'18pt SBS Board',supplier:'ITC Paperboards',stock:'in stock',pcr:'60%',co2:'0.31 kg',lead:'7d',score:74,type:'substrate',color:'teal'},
+  {name:'Double-wall Corrugated E/B Flute',supplier:'Hindustan Paper Corp',stock:'in stock',pcr:'71%',co2:'0.82 kg',lead:'5d',score:80,type:'substrate',color:'teal'},
+  {name:'PET/PE Laminate Film',supplier:'Cosmo Films',stock:'low',pcr:'22%',co2:'0.19 kg',lead:'12d',score:38,type:'substrate',color:'amber'},
+  {name:'Bio-Based PE Film',supplier:'NatureWorks (Brazil)',stock:'in stock',pcr:'—',co2:'0.08 kg',lead:'18d',score:91,type:'bio-plastic',color:'green'},
+  {name:'Recycled Kraft Paper 90gsm',supplier:'GreenPaper Co.',stock:'in stock',pcr:'100%',co2:'0.15 kg',lead:'3d',score:95,type:'substrate',color:'green'},
+  {name:'Soy-Based CMYK Ink Set',supplier:'Flint Group India',stock:'in stock',pcr:'—',co2:'0.04 kg',lead:'4d',score:82,type:'ink',color:'teal'},
+  {name:'Gravure Solvent Ink (8-col)',supplier:'Siegwerk',stock:'in stock',pcr:'—',co2:'0.07 kg',lead:'6d',score:31,type:'ink',color:'coral'},
+  {name:'Water-Based Flexo Ink',supplier:'Flint Group India',stock:'in stock',pcr:'—',co2:'0.02 kg',lead:'3d',score:87,type:'ink',color:'green'},
+  {name:'Soft-Touch Matte Laminate',supplier:'UFLEX Ltd',stock:'in stock',pcr:'—',co2:'0.09 kg',lead:'8d',score:42,type:'coating',color:'amber'},
+  {name:'Gloss UV Varnish',supplier:'UFLEX Ltd',stock:'in stock',pcr:'—',co2:'0.06 kg',lead:'4d',score:50,type:'coating',color:'amber'},
+  {name:'Water-Based PVA Adhesive',supplier:'Pidilite Industries',stock:'in stock',pcr:'—',co2:'0.01 kg',lead:'2d',score:78,type:'adhesive',color:'teal'},
+  {name:'24pt Coated Duplex Board',supplier:'BILT Paper',stock:'critical',pcr:'52%',co2:'0.42 kg',lead:'9d',score:62,type:'substrate',color:'coral'},
+];
+
+const COMPLIANCE = [
+  {id:'CP-LB001',project:'Eco-Friendly Cosmetic Box',customer:'Lumière Beauty',type:'FMCG / Cosmetics',certReq:['ISO 9001','FSC-C','BRC IOP'],scores:{artwork:92,material:78,labeling:85,regulatory:90},issues:['Pantone 485 approval pending','PCR target gap 6%'],status:'partial'},
+  {id:'CP-HC007',project:'Bulk Shipping Crate',customer:'HarvestCo Logistics',type:'B2B / Logistics',certReq:['ISO 9001','FSC-C'],scores:{artwork:100,material:95,labeling:100,regulatory:100},issues:[],status:'pass'},
+  {id:'CP-GC003',project:'Flexible Pouch — Snack Series',customer:'Graze & Co.',type:'Food / FMCG',certReq:['ISO 9001','BRC IOP','FSSAI','Food-Safe Ink'],scores:{artwork:45,material:55,labeling:70,regulatory:60},issues:['Solvent ink not food-safe certified','PCR target miss 18%','EU EPR 2026 risk flagged'],status:'fail'},
+  {id:'CP-CP004',project:'Pharma Blister Pack Insert',customer:'Cipla Pharma',type:'Pharmaceutical',certReq:['Schedule M','ISO 15378','GMP','Braille Spec'],scores:{artwork:82,material:90,labeling:78,regulatory:88},issues:['Braille dot height 0.1mm below spec','Serialisation QR placement needs approval'],status:'partial'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// UI STATE
+// ═══════════════════════════════════════════════════════════
+let currentModule = 'portfolio';
+let panelProject = null;
+let panelTab = 'lifecycle';
+let sidebarCollapsed = false;
+let activeFilters = { design:[], materials:'All', eco:'', approvals:'' };
+
+function toggleSidebar(){
+  sidebarCollapsed = !sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+  document.getElementById('collapse-icon').textContent = sidebarCollapsed ? '→' : '←';
+}
+
+function showModule(id){
+  currentModule = id;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  const titles = {
+    portfolio:['Portfolio Health','Active die-lines, print runs, and lifecycle status'],
+    design:['Design Library','Management of structural designs and artwork across all active SKUs'],
+    materials:['Material Lab','Approved substrates, inks, coatings, and adhesives with sustainability scoring'],
+    sustainability:['Sustainability Scorecard','PCR content and carbon footprint tracking across the portfolio'],
+    vault:['The Vault','Centralised storage for CAD files, die-lines, artwork, and palletisation schemes'],
+    eco:['Change Orders (ECO)','Engineering Change Requests — tracking all in-flight and historical changes'],
+    approvals:['Customer Approvals','Proof review and sign-off portal — all pending approvals in one place'],
+    dies:['Die Library','Tooling register — all cutting dies, locations, and availability status'],
+    costing:['Costing Engine','Live quote builder with real-time material pricing and margin analysis'],
+    compliance:['Compliance','Regulatory compliance tracking across customers, certifications, and materials'],
+  };
+  const [t,s] = titles[id] || ['Module',''];
+  document.getElementById('topbar-title').textContent = t;
+  document.getElementById('topbar-sub').textContent = s;
+  renderModule(id);
+}
+
+function renderModule(id){
+  const el = document.getElementById('main-content');
+  el.innerHTML = '';
+  const fn = {
+    portfolio: renderPortfolio,
+    design: renderDesign,
+    materials: renderMaterials,
+    sustainability: renderSustainability,
+    vault: renderVault,
+    eco: renderECO,
+    approvals: renderApprovals,
+    dies: renderDies,
+    costing: renderCosting,
+    compliance: renderCompliance,
+  };
+  if(fn[id]) fn[id](el);
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+const badge = (text, color='teal') => `<span class="badge ${color}">${text}</span>`;
+const scoreColor = s => s>=80?'green':s>=55?'amber':'coral';
+const statusBadge = s => {
+  const m={
+    'Approved':'teal','Market-Ready':'green','Under Review':'amber','In Design':'blue',
+    'In Review':'amber','Pending':'gray','Closed':'gray','Awaiting':'amber','pass':'green','partial':'amber','fail':'coral',
+    'In Use':'teal','Available':'green','Maintenance':'amber',
+  };
+  return badge(s, m[s]||'gray');
+};
+
+function projectCard(p, onclick){
+  const pct = Math.round((p.pcr/p.pcrTarget)*100);
+  const barColor = p.pcr>=p.pcrTarget?'#22c55e':p.pcr>=p.pcrTarget*.8?'#f59e0b':'#ef4444';
+  return `<div class="ai-card" style="cursor:pointer" onclick="${onclick}">
+    <div style="flex:1">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:2px">${p.type} · ${p.customer}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${p.name}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${p.tags.map(t=>badge(t)).join('')}${statusBadge(p.status)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div style="font-size:10px;color:var(--text3)">CO₂e</div>
+          <div style="font-size:16px;font-weight:600;font-family:var(--mono);color:var(--text)">${p.co2} kg</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:10px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">PCR Content</div>
+          <div style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--text)">${p.pcr}% <span style="color:var(--text3);font-size:11px">/ ${p.pcrTarget}%</span></div>
+          <div class="progress-wrap" style="margin-top:6px"><div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Waste</div>
+          <div style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--text)">${p.waste}%</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">AI Signals</div>
+          <div style="font-size:13px;font-weight:600;font-family:var(--mono);color:${p.signals>0?'var(--amber)':'var(--text3)'}">${p.signals>0?'⚡ '+p.signals+' signal'+(p.signals>1?'s':''):'◉ Clear'}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODULES
+// ═══════════════════════════════════════════════════════════
+
+function renderPortfolio(el){
+  el.innerHTML = `
+  <div class="stat-row">
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">18</div><div class="stat-label">Active Die-Lines</div></div>
+    <div class="stat-card blue"><div class="stat-val" style="color:var(--blue)">7</div><div class="stat-label">Print Runs</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">3</div><div class="stat-label">On Track</div></div>
+    <div class="stat-card coral"><div class="stat-val" style="color:var(--coral)">1</div><div class="stat-label">At Risk</div></div>
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">55%</div><div class="stat-label">Avg PCR Content</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">14%</div><div class="stat-label">Carbon Saved</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+    <div>
+      <div class="section-head"><div class="section-title">Active Projects (${PROJECTS.length})</div></div>
+      ${PROJECTS.map(p => projectCard(p, `openPanel('${p.id}')`)).join('')}
+    </div>
+    <div>
+      <div class="section-head"><div class="section-title">AI Reflections — Portfolio Wide</div></div>
+      ${[
+        {icon:'♻',title:'Soy-ink switch saves 12% carbon tax',priority:'high',desc:'Switching to soy-based ink on Lumière SKU reduces carbon tax by 12% with zero impact on drying time.',action:'→ Switch to INK-SOY-4C',bg:'#0a2a1a'},
+        {icon:'⚠',title:'Lead time spike: recycled kraft paper',priority:'high',desc:'Lead time spiked +15 days due to Chennai port congestion. Alternative local supplier available.',action:'→ Switch to GreenPaper Co. (Pune)',bg:'#2a1800'},
+        {icon:'◎',title:'4% higher gluer waste on similar geometry',priority:'medium',desc:'Structural design on LB001 matches geometry causing 4% excess waste on 2 previous runs.',action:'→ Adjust glue flap by +2mm',bg:'#0f1f3a'},
+        {icon:'⚡',title:'7 customer approvals pending',priority:'medium',desc:'Average approval turnaround is now 4.2 days — up from 2.8 days last month. 2 are overdue.',action:'→ View Customer Approvals',bg:'#1e0f3a'},
+      ].map(ins=>`<div class="ai-card ${ins.priority}">
+        <div class="ai-icon" style="background:${ins.bg}">${ins.icon}</div>
+        <div class="ai-body">
+          <div class="ai-title-row"><div class="ai-title">${ins.title}</div>${badge(ins.priority.toUpperCase(),ins.priority==='high'?'coral':ins.priority==='medium'?'amber':'blue')}</div>
+          <div class="ai-desc">${ins.desc}</div>
+          <div class="ai-action">${ins.action}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderDesign(el){
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">12</div><div class="stat-label">Total Designs</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">9</div><div class="stat-label">Pending Artwork Review</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">3</div><div class="stat-label">Press-Ready</div></div>
+  </div>
+  <div class="section-head"><div class="section-title">All Projects — Click to open lifecycle</div></div>
+  ${PROJECTS.map(p => projectCard(p, `openPanel('${p.id}')`)).join('')}`;
+}
+
+function renderMaterials(el){
+  const types = ['All','Substrate','Ink','Coating','Adhesive','Bio-plastic'];
+  let activeType = activeFilters.materials;
+  el.innerHTML = `
+  <div class="filter-bar">
+    <input class="search-box" placeholder="Search materials, substrates, suppliers…" style="max-width:300px" oninput="filterMaterials(this.value)">
+    <div style="display:flex;gap:6px">${types.map(t=>`<div class="filter-chip ${t===activeType?'active':''}" onclick="setMatFilter('${t}',this)">${t}</div>`).join('')}</div>
+  </div>
+  <div id="mat-list">${renderMatList(activeType)}</div>`;
+}
+function renderMatList(type){
+  const filtered = type==='All' ? MATERIALS : MATERIALS.filter(m=>m.type.toLowerCase()===type.toLowerCase());
+  return `<div class="tbl-wrap"><table>
+  <thead><tr><th>Material</th><th>Supplier</th><th>Stock</th><th>PCR %</th><th>CO₂e/unit</th><th>Lead</th><th>Sust. Score</th></tr></thead>
+  <tbody>${filtered.map(m=>{
+    const sc = scoreColor(m.score);
+    const stockColor = m.stock==='in stock'?'teal':m.stock==='low'?'amber':'coral';
+    return `<tr>
+      <td><div class="td-main">${m.name}</div><div style="font-size:10px;color:var(--text3)">${m.type}</div></td>
+      <td style="color:var(--text2)">${m.supplier}</td>
+      <td>${badge(m.stock,stockColor)}</td>
+      <td class="td-mono">${m.pcr}</td>
+      <td class="td-mono">${m.co2}</td>
+      <td class="td-mono">${m.lead}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="progress-wrap" style="width:60px"><div class="progress-fill" style="width:${m.score}%;background:var(--${sc})"></div></div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--${sc})">${m.score}/100</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function setMatFilter(type, el){
+  activeFilters.materials = type;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mat-list').innerHTML = renderMatList(type);
+}
+function filterMaterials(q){
+  const filtered = MATERIALS.filter(m=>m.name.toLowerCase().includes(q.toLowerCase())||m.supplier.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('mat-list').innerHTML = `<div class="tbl-wrap"><table>
+  <thead><tr><th>Material</th><th>Supplier</th><th>Stock</th><th>PCR %</th><th>CO₂e/unit</th><th>Lead</th><th>Sust. Score</th></tr></thead>
+  <tbody>${filtered.map(m=>{
+    const sc=scoreColor(m.score);const sc2=m.stock==='in stock'?'teal':m.stock==='low'?'amber':'coral';
+    return `<tr><td><div class="td-main">${m.name}</div></td><td>${m.supplier}</td><td>${badge(m.stock,sc2)}</td><td class="td-mono">${m.pcr}</td><td class="td-mono">${m.co2}</td><td class="td-mono">${m.lead}</td><td><span style="color:var(--${sc});font-family:var(--mono);font-size:11px">${m.score}/100</span></td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+function renderSustainability(el){
+  const avg = Math.round(PROJECTS.reduce((a,p)=>a+p.pcr,0)/PROJECTS.length);
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">${avg}%</div><div class="stat-label">Portfolio Avg PCR</div><div class="stat-delta delta-down">Target: 65%</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">14%</div><div class="stat-label">Carbon Saved vs Baseline</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">3.2%</div><div class="stat-label">Press Waste Rate</div><div class="stat-delta delta-up">Benchmark: 3.5%</div></div>
+    <div class="stat-card blue"><div class="stat-val" style="color:var(--blue)">4</div><div class="stat-label">AI Sust. Signals</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <div class="section-head"><div class="section-title">PCR Content by Project</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Project</th><th>PCR Actual</th><th>Target</th><th>Gap</th></tr></thead><tbody>
+      ${PROJECTS.map(p=>{
+        const gap=p.pcrTarget-p.pcr;const color=gap<=0?'green':gap<=8?'amber':'coral';
+        return `<tr>
+          <td><div class="td-main">${p.name}</div><div style="font-size:10px;color:var(--text3)">${p.customer}</div></td>
+          <td><div style="display:flex;align-items:center;gap:8px"><div class="progress-wrap" style="width:70px"><div class="progress-fill" style="width:${p.pcr}%;background:var(--${gap<=0?'green':gap<=8?'amber':'coral'})"></div></div><span class="td-mono">${p.pcr}%</span></div></td>
+          <td class="td-mono">${p.pcrTarget}%</td>
+          <td>${badge(gap<=0?'Met ✓':'+'+gap+'% gap',color)}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>
+      <div class="section-head" style="margin-top:20px"><div class="section-title">CO₂e per Run</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Project</th><th>CO₂e (kg)</th><th>Press Waste</th></tr></thead><tbody>
+      ${PROJECTS.map(p=>`<tr><td class="td-main">${p.name}</td><td class="td-mono">${p.co2} kg</td><td class="td-mono" style="color:${p.waste>4?'var(--coral)':p.waste>3?'var(--amber)':'var(--green)'}">${p.waste}%</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+    <div>
+      <div class="section-head"><div class="section-title">AI Sustainability Signals</div></div>
+      ${[
+        {icon:'♻',priority:'high',title:'Soy-ink switch saves 12% carbon tax',desc:'Switching to soy-based ink on Lumière SKU reduces CO₂e per run by 12%. No drying time impact.',action:'→ Switch to INK-SOY-4C'},
+        {icon:'⚠',priority:'high',title:'Lead time spike: recycled kraft paper',desc:'Kraft paper lead time +15 days. Local supplier (GreenPaper Co., Pune) has same spec at 3-day lead.',action:'→ Switch to GreenPaper Co.'},
+        {icon:'♻',priority:'medium',title:'Bio-PE alternative closes PCR gap',desc:'Switching PE sealant layer (Graze & Co.) to bio-PE (sugarcane) raises PCR from 22% to 38%.',action:'→ Evaluate NatureWorks bio-PE'},
+        {icon:'⚠',priority:'low',title:'Solvent ink — upcoming EU regulation',desc:'EU EPR 2026 may restrict solvent-based gravure inks for food-contact packaging. Act now.',action:'→ Request water-based ink trial'},
+      ].map(ins=>`<div class="ai-card ${ins.priority}">
+        <div class="ai-icon" style="background:${ins.priority==='high'?'#2a1200':ins.priority==='medium'?'#0a2a1a':'#0f1f3a'}">${ins.icon}</div>
+        <div class="ai-body">
+          <div class="ai-title-row"><div class="ai-title">${ins.title}</div>${badge(ins.priority.toUpperCase(),ins.priority==='high'?'coral':ins.priority==='medium'?'amber':'blue')}</div>
+          <div class="ai-desc">${ins.desc}</div>
+          <div class="ai-action">${ins.action}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderVault(el){
+  const files=[
+    {name:'DL-LB-2024-001.dxf',proj:'Eco-Friendly Cosmetic Box',ver:'v3',fmt:'DXF',status:'current',date:'Feb 12, 2025',icon:'✦'},
+    {name:'ART-LB-2024-001-v3.pdf',proj:'Eco-Friendly Cosmetic Box',ver:'v3',fmt:'PDF',status:'current',date:'Feb 20, 2025',icon:'◉'},
+    {name:'PAL-LB-2024-001.pdf',proj:'Eco-Friendly Cosmetic Box',ver:'v1',fmt:'PDF',status:'current',date:'Feb 14, 2025',icon:'▣'},
+    {name:'ART-LB-2024-001-v1.pdf',proj:'Eco-Friendly Cosmetic Box',ver:'v1',fmt:'PDF',status:'archived',date:'Jan 30, 2025',icon:'◉'},
+    {name:'DL-HC-2024-007.dxf',proj:'Bulk Shipping Crate',ver:'v1',fmt:'DXF',status:'current',date:'Dec 20, 2024',icon:'✦'},
+    {name:'ART-HC-2024-007-v1.pdf',proj:'Bulk Shipping Crate',ver:'v1',fmt:'PDF',status:'current',date:'Jan 15, 2025',icon:'◉'},
+    {name:'PRESS-APPROVAL-HC-007.pdf',proj:'Bulk Shipping Crate',ver:'v1',fmt:'PDF',status:'current',date:'Jan 22, 2025',icon:'✓'},
+    {name:'DL-GC-2024-003.dxf',proj:'Flexible Pouch — Snack Series',ver:'v2',fmt:'DXF',status:'current',date:'Mar 2, 2025',icon:'✦'},
+    {name:'ART-GC-2024-003-v2.pdf',proj:'Flexible Pouch — Snack Series',ver:'v2',fmt:'PDF',status:'pending review',date:'Mar 8, 2025',icon:'◉'},
+    {name:'CAD-AC-2023-012.step',proj:'Premium Gift Set Box',ver:'v2',fmt:'STEP',status:'current',date:'Oct 5, 2024',icon:'⬡'},
+    {name:'ART-AC-2023-012-v5.pdf',proj:'Premium Gift Set Box',ver:'v5',fmt:'PDF',status:'current',date:'Oct 18, 2024',icon:'◉'},
+    {name:'PAL-AC-2023-012.pdf',proj:'Premium Gift Set Box',ver:'v1',fmt:'PDF',status:'current',date:'Oct 20, 2024',icon:'▣'},
+  ];
+  const statColor = s=>s==='current'?'teal':s==='archived'?'gray':'amber';
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">12</div><div class="stat-label">Total Files</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">10</div><div class="stat-label">Current</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">1</div><div class="stat-label">Pending Review</div></div>
+    <div class="stat-card gray" style="--gray:#555"><div class="stat-val" style="color:var(--text3)">1</div><div class="stat-label">Archived</div></div>
+  </div>
+  <div class="filter-bar">
+    <div style="display:flex;gap:6px">${['All Files','Die Line','Artwork','Cad','Palletization','Approval'].map((t,i)=>`<div class="filter-chip ${i===0?'active':''}">${t}</div>`).join('')}</div>
+  </div>
+  <div class="tbl-wrap"><table>
+  <thead><tr><th></th><th>File Name</th><th>Project</th><th>Version</th><th>Format</th><th>Updated</th><th>Status</th><th></th></tr></thead>
+  <tbody>${files.map(f=>`<tr>
+    <td style="color:var(--teal);font-size:16px">${f.icon}</td>
+    <td><div class="td-main td-mono" style="font-size:11px">${f.name}</div></td>
+    <td style="color:var(--text2)">${f.proj}</td>
+    <td class="td-mono">${f.ver}</td>
+    <td class="td-mono">${f.fmt}</td>
+    <td style="color:var(--text3);font-size:11px">${f.date}</td>
+    <td>${badge(f.status, statColor(f.status))}</td>
+    <td><button class="btn btn-ghost btn-sm">↓ Get</button></td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ════════════════════════════════════════════
+// NEW MODULE 1 — ECO / CHANGE ORDERS
+// ════════════════════════════════════════════
+function renderECO(el){
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card coral"><div class="stat-val" style="color:var(--coral)">3</div><div class="stat-label">Open ECOs</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">1</div><div class="stat-label">In Review</div></div>
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">1</div><div class="stat-label">Approved</div></div>
+    <div class="stat-card blue"><div class="stat-val" style="color:var(--blue)">14</div><div class="stat-label">Total SKUs Affected</div></div>
+  </div>
+  <div class="section-head">
+    <div class="section-title">All Change Orders</div>
+    <div class="section-actions"><button class="btn btn-primary btn-sm" onclick="openECONew()">+ New ECO</button></div>
+  </div>
+  ${ECOS.map(e=>ecoCard(e)).join('')}`;
+}
+
+function ecoCard(e){
+  const typeColor = {
+    'Artwork Change':'purple','Material Change':'teal','Structural Change':'amber','Regulatory Update':'blue'
+  };
+  return `<div class="ai-card ${e.priority}" style="cursor:default">
+    <div style="flex:1">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px">${e.id} · Raised ${e.raised}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">${e.skuName}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            ${badge(e.type, typeColor[e.type]||'gray')}
+            ${statusBadge(e.status)}
+            ${badge(e.priority+' priority', e.priority==='high'?'coral':e.priority==='medium'?'amber':'blue')}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:10px;color:var(--text3)">Affected SKUs</div>
+          <div style="font-size:20px;font-weight:600;font-family:var(--mono);color:var(--${e.impactLevel==='High'?'coral':e.impactLevel==='Medium'?'amber':'teal'})">${e.affectedSkus}</div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Reason for Change</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.55">${e.reason}</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:11px;color:var(--text3)">Owner: <span style="color:var(--text)">${e.owner}</span> · Customer: <span style="color:var(--text)">${e.customer}</span></div>
+        <div style="display:flex;gap:8px">
+          ${e.status==='Pending'?`<button class="btn btn-ghost btn-sm">View Impact</button><button class="btn btn-primary btn-sm">Approve</button>`:''}
+          ${e.status==='In Review'?`<button class="btn btn-ghost btn-sm">Request Info</button><button class="btn btn-primary btn-sm">Approve</button>`:''}
+          ${e.status==='Approved'?`<button class="btn btn-ghost btn-sm">View History</button>`:''}
+          ${e.status==='Closed'?`<button class="btn btn-ghost btn-sm" style="color:var(--text3)">Archived</button>`:''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// NEW MODULE 2 — CUSTOMER APPROVALS
+// ════════════════════════════════════════════
+function renderApprovals(el){
+  const pending = APPROVALS.filter(a=>a.status!=='Approved');
+  const approved = APPROVALS.filter(a=>a.status==='Approved');
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">5</div><div class="stat-label">Awaiting Response</div></div>
+    <div class="stat-card coral"><div class="stat-val" style="color:var(--coral)">2</div><div class="stat-label">Overdue</div></div>
+    <div class="stat-card blue"><div class="stat-val" style="color:var(--blue)">4.2d</div><div class="stat-label">Avg Turnaround</div><div class="stat-delta delta-down">↑ from 2.8d</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">2</div><div class="stat-label">Approved This Week</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <div class="section-head"><div class="section-title">Pending Approvals (${pending.length})</div></div>
+      ${pending.map(a=>approvalCard(a)).join('')}
+    </div>
+    <div>
+      <div class="section-head"><div class="section-title">Recently Approved</div></div>
+      ${approved.map(a=>approvalCard(a)).join('')}
+      <div style="margin-top:20px">
+        <div class="section-head"><div class="section-title">Approval Cycle Time Trend</div></div>
+        <div class="tbl-wrap" style="padding:16px">
+          ${[{week:'Week 1',days:2.1},{week:'Week 2',days:2.8},{week:'Week 3',days:3.4},{week:'Week 4',days:4.2}].map(w=>`
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="font-size:11px;color:var(--text3);width:50px;font-family:var(--mono)">${w.week}</div>
+            <div class="progress-wrap" style="flex:1"><div class="progress-fill" style="width:${Math.min(w.days/5*100,100)}%;background:${w.days<3?'var(--green)':w.days<4?'var(--amber)':'var(--coral)'}"></div></div>
+            <div style="font-size:11px;font-family:var(--mono);color:${w.days<3?'var(--green)':w.days<4?'var(--amber)':'var(--coral)'};width:30px">${w.days}d</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function approvalCard(a){
+  const isApproved = a.status==='Approved';
+  return `<div class="portal-card" style="margin-bottom:12px">
+    <div class="portal-card-head">
+      <div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:2px">${a.id} · ${a.type} · ${a.version}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${a.project}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.customer}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        ${statusBadge(a.status)}
+        ${a.urgent?badge('URGENT','coral'):''}
+        ${!isApproved?`<div style="font-size:10px;color:${a.dueIn==='1 day'?'var(--coral)':'var(--text3)'};font-family:var(--mono)">Due in ${a.dueIn}</div>`:''}
+      </div>
+    </div>
+    <div class="portal-card-body">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="proof-thumb">PDF<br>Proof<br>${a.version}</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${a.proofNotes}</div>
+          ${a.comments.length>0?a.comments.map(c=>`<div class="comment-item">
+            <div class="comment-author">${c.author}</div>
+            <div class="comment-text">${c.text}</div>
+            <div class="comment-time">${c.time}</div>
+          </div>`).join(''):'<div style="font-size:11px;color:var(--text3);font-style:italic">No comments yet.</div>'}
+          ${!isApproved?`<div style="display:flex;gap:6px;margin-top:10px">
+            <button class="btn btn-primary btn-sm">Send Reminder</button>
+            <button class="btn btn-ghost btn-sm">View Proof</button>
+            <button class="btn btn-ghost btn-sm">Add Comment</button>
+          </div>`:`<div style="margin-top:8px;font-size:11px;color:var(--green)">✓ Approved ${a.sent}</div>`}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// NEW MODULE 3 — DIE LIBRARY
+// ════════════════════════════════════════════
+function renderDies(el){
+  const available = DIES.filter(d=>d.status==='Available').length;
+  const inUse = DIES.filter(d=>d.status==='In Use').length;
+  const totalCost = DIES.reduce((a,d)=>a+parseInt(d.cost.replace(/[₹,]/g,'')),0);
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">${DIES.length}</div><div class="stat-label">Total Dies</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">${inUse}</div><div class="stat-label">In Use</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">${available}</div><div class="stat-label">Available for Reuse</div></div>
+    <div class="stat-card blue"><div class="stat-val" style="color:var(--blue)">₹${(totalCost/1000).toFixed(0)}K</div><div class="stat-label">Total Tooling Value</div></div>
+  </div>
+  <div class="section-head">
+    <div class="section-title">Die Register</div>
+    <div class="section-actions"><button class="btn btn-primary btn-sm">+ Register New Die</button></div>
+  </div>
+  <div class="die-grid">
+  ${DIES.map(d=>{
+    const shapes = {
+      'rect':`<div style="width:70%;height:65%;border:2px dashed var(--teal);border-radius:3px"></div>`,
+      'rect-wide':`<div style="width:85%;height:50%;border:2px dashed var(--teal)"></div>`,
+      'tall':`<div style="width:50%;height:75%;border:2px dashed var(--teal);border-radius:6px"></div>`,
+      'square':`<div style="width:65%;height:65%;border:2px dashed var(--teal);border-radius:2px"></div>`,
+      'slim':`<div style="width:40%;height:72%;border:2px dashed var(--teal);border-radius:3px"></div>`,
+    };
+    const sc = d.status==='In Use'?'teal':d.status==='Available'?'green':'amber';
+    return `<div class="die-card" onclick="openDieDetail('${d.id}')">
+      <div class="die-visual">${shapes[d.shape]||shapes['rect']}</div>
+      <div class="die-id">${d.id}</div>
+      <div class="die-name">${d.name}</div>
+      <div class="die-meta">
+        ${badge(d.status, sc)}
+        ${badge(d.type,'gray')}
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div><div style="font-size:10px;color:var(--text3)">Size</div><div style="font-size:11px;color:var(--text2);font-family:var(--mono)">${d.size}</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">Plant</div><div style="font-size:11px;color:var(--text2)">${d.plant}</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">Cost</div><div style="font-size:11px;color:var(--teal);font-family:var(--mono)">${d.cost}</div></div>
+        <div><div style="font-size:10px;color:var(--text3)">Runs</div><div style="font-size:11px;color:var(--text2);font-family:var(--mono)">${d.runs} total</div></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">Customer: ${d.customer}</div>
+    </div>`;
+  }).join('')}
+  </div>
+  <div class="section-head" style="margin-top:4px"><div class="section-title">Available for Reuse — Potential Savings</div></div>
+  <div class="ai-card medium">
+    <div class="ai-icon" style="background:#1a1f00">✦</div>
+    <div class="ai-body">
+      <div class="ai-title-row"><div class="ai-title">${available} dies available — check before ordering new tooling</div>${badge('MEDIUM','amber')}</div>
+      <div class="ai-desc">DIE-GC-003 (Snack Pouch Stand-Up, 180×260mm) and DIE-ZL-001 (Tea Carton, 180×90mm) are available for reuse. If any new job matches these dimensions, tooling cost of ₹46,500 can be saved.</div>
+      <div class="ai-action">→ View available dies by size range</div>
+    </div>
+  </div>`;
+}
+function openDieDetail(id){ /* placeholder */ }
+
+// ════════════════════════════════════════════
+// NEW MODULE 4 — COSTING ENGINE
+// ════════════════════════════════════════════
+function renderCosting(el){
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card teal"><div class="stat-val" style="color:var(--teal)">12</div><div class="stat-label">Active Quotes</div></div>
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">₹2.4Cr</div><div class="stat-label">Quote Pipeline Value</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">34.2%</div><div class="stat-label">Avg Gross Margin</div></div>
+    <div class="stat-card coral"><div class="stat-val" style="color:var(--coral)">3</div><div class="stat-label">Quotes Expiring Soon</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:20px">
+    <div>
+      <div class="section-head">
+        <div class="section-title">Quote Builder</div>
+        <div class="section-actions"><button class="btn btn-primary btn-sm" onclick="runQuote()">⚡ Calculate Quote</button></div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Customer</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font)">
+              <option>Lumière Beauty</option><option>HarvestCo Logistics</option><option>Graze & Co.</option><option>Artisanal Co.</option><option>New Customer</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Packaging Type</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font)">
+              <option>Folding Carton (Rigid)</option><option>Corrugated Box</option><option>Flexible Pouch</option><option>Label</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Order Quantity</label>
+            <input type="number" value="10000" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--mono)" oninput="updateCost(this.value)">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Substrate</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font)">
+              <option>18pt SBS Board (250gsm)</option><option>24pt Duplex Board (350gsm)</option><option>Corrugated E/B Flute</option><option>PET/PE Laminate Film</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Colours</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font)">
+              <option>4-colour CMYK</option><option>1-colour</option><option>2-colour</option><option>6-colour + special</option><option>8-colour gravure</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Finishing</label>
+            <select style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font)">
+              <option>Gloss Lamination</option><option>Matte Lamination</option><option>Soft-Touch Matte</option><option>UV Varnish (spot)</option><option>Foil Stamp</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox"> Embossing / Debossing</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox" checked> New Die Required</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer"><input type="checkbox"> Window Patching</label>
+        </div>
+      </div>
+      <div id="cost-result">
+        <div class="section-head"><div class="section-title">Cost Breakdown</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+          <div style="padding:16px">
+            ${[
+              {label:'Substrate (18pt SBS Board, 10,000 sheets)',val:'₹4,800'},
+              {label:'Ink (Soy CMYK 4-colour, ~18% coverage)',val:'₹620'},
+              {label:'Finishing (Soft-touch matte lamination)',val:'₹1,200'},
+              {label:'Die / Tooling (Steel-rule, amortised 5,000 units)',val:'₹840'},
+              {label:'Makeready (4 colours × 45 min, ₹1,800/hr)',val:'₹540'},
+              {label:'Run cost (3,200 sheets/hr @ ₹2,400/hr)',val:'₹7,500'},
+              {label:'Folding & Gluing',val:'₹1,800'},
+              {label:'Overhead (18% of direct)',val:'₹3,110'},
+            ].map(r=>`<div class="cost-breakdown-row"><div class="cost-label">${r.label}</div><div class="cost-val">${r.val}</div></div>`).join('')}
+            <div class="cost-breakdown-row" style="border-top:1px solid var(--border2);padding-top:12px;margin-top:4px">
+              <div style="font-size:13px;font-weight:600;color:var(--text)">Total Cost (10,000 units)</div>
+              <div style="font-size:15px;font-weight:700;font-family:var(--mono);color:var(--teal)">₹20,410</div>
+            </div>
+            <div class="cost-breakdown-row">
+              <div class="cost-label">Cost per unit</div>
+              <div class="cost-val" style="color:var(--teal)">₹2.04</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-head"><div class="section-title">Margin Calculator</div></div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="margin-bottom:14px">
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Target Margin %</label>
+          <input type="range" min="15" max="55" value="35" style="width:100%" oninput="updateMargin(this.value)">
+          <div style="display:flex;justify-content:space-between;margin-top:4px"><span style="font-size:10px;color:var(--text3)">15%</span><span id="margin-val" style="font-size:12px;font-family:var(--mono);color:var(--teal)">35%</span><span style="font-size:10px;color:var(--text3)">55%</span></div>
+        </div>
+        <div class="cost-grid">
+          <div class="cost-card"><div class="cost-card-label">Cost/unit</div><div class="cost-card-val">₹2.04</div></div>
+          <div class="cost-card"><div class="cost-card-label">Quote/unit</div><div class="cost-card-val" id="quote-val" style="color:var(--teal)">₹3.14</div></div>
+          <div class="cost-card"><div class="cost-card-label">Total Quote</div><div class="cost-card-val" id="total-val" style="color:var(--teal)">₹31,400</div></div>
+          <div class="cost-card"><div class="cost-card-label">Gross Profit</div><div class="cost-card-val" id="profit-val" style="color:var(--green)">₹11,000</div></div>
+        </div>
+      </div>
+      <div class="section-head"><div class="section-title">Recent Quotes</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>SKU</th><th>Qty</th><th>Quote</th><th>Margin</th><th>Status</th></tr></thead>
+        <tbody>
+          ${[
+            {sku:'LB001',qty:'50K',quote:'₹1.48',margin:'32%',status:'Sent'},
+            {sku:'HC007',qty:'5K',quote:'₹286',margin:'38%',status:'Won'},
+            {sku:'GC003',qty:'100K',quote:'₹0.74',margin:'19%',status:'Negotiating'},
+            {sku:'AC012',qty:'8K',quote:'₹124',margin:'41%',status:'Won'},
+            {sku:'ZL001',qty:'25K',quote:'₹0.92',margin:'28%',status:'Pending'},
+          ].map(q=>`<tr>
+            <td class="td-main td-mono" style="font-size:11px">${q.sku}</td>
+            <td class="td-mono">${q.qty}</td>
+            <td class="td-mono" style="color:var(--teal)">${q.quote}</td>
+            <td class="td-mono" style="color:${parseInt(q.margin)>=35?'var(--green)':parseInt(q.margin)>=25?'var(--amber)':'var(--coral)'}">${q.margin}</td>
+            <td>${badge(q.status,q.status==='Won'?'green':q.status==='Sent'?'teal':q.status==='Negotiating'?'amber':'gray')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>
+  </div>`;
+}
+function updateMargin(v){
+  document.getElementById('margin-val').textContent = v+'%';
+  const cost = 2.04;
+  const quote = (cost/(1-v/100)).toFixed(2);
+  const total = Math.round(quote*10000);
+  const profit = total - 20410;
+  document.getElementById('quote-val').textContent = '₹'+quote;
+  document.getElementById('total-val').textContent = '₹'+total.toLocaleString('en-IN');
+  document.getElementById('profit-val').textContent = '₹'+profit.toLocaleString('en-IN');
+}
+function runQuote(){}
+
+// ════════════════════════════════════════════
+// NEW MODULE 5 — COMPLIANCE
+// ════════════════════════════════════════════
+function renderCompliance(el){
+  const pass = COMPLIANCE.filter(c=>c.status==='pass').length;
+  const partial = COMPLIANCE.filter(c=>c.status==='partial').length;
+  const fail = COMPLIANCE.filter(c=>c.status==='fail').length;
+  el.innerHTML = `
+  <div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card green"><div class="stat-val" style="color:var(--green)">${pass}</div><div class="stat-label">Fully Compliant</div></div>
+    <div class="stat-card amber"><div class="stat-val" style="color:var(--amber)">${partial}</div><div class="stat-label">Partial Issues</div></div>
+    <div class="stat-card coral"><div class="stat-val" style="color:var(--coral)">${fail}</div><div class="stat-label">Non-Compliant</div></div>
+    <div class="stat-card blue"><div class="stat-val" style="color:var(--blue)">4</div><div class="stat-label">Certifications Active</div></div>
+  </div>
+  <div class="section-head"><div class="section-title">Compliance Overview — All Projects</div></div>
+  ${COMPLIANCE.map(c=>{
+    const avgScore = Math.round(Object.values(c.scores).reduce((a,b)=>a+b,0)/4);
+    const sc = scoreColor(avgScore);
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px">${c.id} · ${c.type}</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">${c.project}</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${c.customer}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${c.certReq.map(r=>badge(r,'gray')).join('')}</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0;margin-left:20px">
+          <div style="font-size:36px;font-weight:700;font-family:var(--mono);color:var(--${sc})">${avgScore}</div>
+          <div style="font-size:10px;color:var(--text3)">Compliance Score</div>
+          <div style="margin-top:8px">${statusBadge(c.status)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:${c.issues.length>0?'14px':'0'}">
+        ${Object.entries(c.scores).map(([k,v])=>{const sc2=scoreColor(v);return `<div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:10px;color:var(--text3);text-transform:capitalize">${k}</div>
+            <div style="font-size:10px;font-family:var(--mono);color:var(--${sc2})">${v}</div>
+          </div>
+          <div class="progress-wrap"><div class="progress-fill" style="width:${v}%;background:var(--${sc2})"></div></div>
+        </div>`}).join('')}
+      </div>
+      ${c.issues.length>0?`<div style="background:var(--coral-dim);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;font-weight:600;color:var(--coral);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Issues Requiring Action</div>
+        ${c.issues.map(i=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--coral);font-size:12px">⚠</span><span style="font-size:12px;color:var(--text2)">${i}</span></div>`).join('')}
+      </div>`:''}
+    </div>`;
+  }).join('')}
+  <div class="section-head" style="margin-top:8px"><div class="section-title">AI Compliance Signals</div></div>
+  <div class="ai-card high">
+    <div class="ai-icon" style="background:var(--coral-dim)">⚖</div>
+    <div class="ai-body">
+      <div class="ai-title-row"><div class="ai-title">Graze & Co. — food-safe ink certification missing</div>${badge('HIGH','coral')}</div>
+      <div class="ai-desc">Current gravure solvent ink (Siegwerk, sust. score 31/100) is not certified for direct food-contact packaging. FSSAI and BRC IOP require food-safe ink certification. This must be resolved before production release.</div>
+      <div class="ai-action">→ Initiate water-based gravure ink qualification (4–6 weeks)</div>
+    </div>
+  </div>
+  <div class="ai-card medium">
+    <div class="ai-icon" style="background:var(--amber-dim)">⚖</div>
+    <div class="ai-body">
+      <div class="ai-title-row"><div class="ai-title">Cipla Pharma — Braille spec 0.1mm below Schedule M minimum</div>${badge('MEDIUM','amber')}</div>
+      <div class="ai-desc">Braille dot height measured at 0.38mm vs 0.48mm minimum per Schedule M (Government of India). Structural die adjustment required before regulatory sign-off.</div>
+      <div class="ai-action">→ Raise ECO for Braille height correction on CP-CP004</div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PANEL SYSTEM
+// ═══════════════════════════════════════════════════════════
+function openPanel(id){
+  const p = PROJECTS.find(x=>x.id===id);
+  if(!p) return;
+  panelProject = p;
+  panelTab = 'lifecycle';
+  document.getElementById('panel-title').textContent = p.name;
+  document.getElementById('panel-sub').textContent = `${p.customer} · ${p.type} · ${p.id}`;
+  renderPanelTabs();
+  renderPanelBody();
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+}
+function closePanel(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+}
+function renderPanelTabs(){
+  const tabs = [{id:'lifecycle',label:'Lifecycle'},{id:'bom',label:'Smart BOM'},{id:'insights',label:`AI Insights (${panelProject.insights.length})`},{id:'gate',label:'Release Gate'}];
+  document.getElementById('panel-tabs').innerHTML = tabs.map(t=>`<div class="ptab ${t.id===panelTab?'active':''}" onclick="switchPanelTab('${t.id}')">${t.label}</div>`).join('');
+}
+function switchPanelTab(id){
+  panelTab = id;
+  renderPanelTabs();
+  renderPanelBody();
+}
+function renderPanelBody(){
+  const p = panelProject;
+  const el = document.getElementById('panel-body');
+  if(panelTab==='lifecycle'){
+    el.innerHTML = `<div style="margin-bottom:16px">${statusBadge(p.status)} ${badge(p.type,'gray')} ${badge(p.plant,'gray')}</div>
+    <div class="timeline">${p.lifecycle.map(s=>`<div class="tl-item">
+      <div class="tl-dot ${s.done?'done':s.blocked?'blocked':'pending'}">${s.done?'✓':s.blocked?'✕':'○'}</div>
+      <div class="tl-date">${s.date}</div>
+      <div class="tl-title">${s.stage}</div>
+      <div class="tl-detail">${s.detail}</div>
+    </div>`).join('')}</div>`;
+  } else if(panelTab==='bom'){
+    el.innerHTML = `<table class="bom-table"><thead><tr><th>Category</th><th>Material</th><th>Spec</th><th>Qty</th><th>Unit Cost</th><th>PCR %</th><th>CO₂e</th></tr></thead>
+    <tbody>${p.bom.map(r=>`<tr><td>${badge(r.cat,'gray')}</td><td style="color:var(--text);font-weight:500">${r.mat}</td><td class="td-mono" style="font-size:11px">${r.spec}</td><td class="td-mono">${r.qty}</td><td class="td-mono" style="color:var(--teal)">${r.cost}</td><td class="td-mono">${r.pcr}</td><td class="td-mono">${r.co2}</td></tr>`).join('')}</tbody></table>
+    <div class="bom-total">Estimated BOM Cost (per run): <span style="font-size:16px;color:var(--teal)">${p.bomTotal}</span></div>`;
+  } else if(panelTab==='insights'){
+    if(p.insights.length===0){
+      el.innerHTML = `<div class="empty"><div class="empty-icon">◉</div><div class="empty-title">No signals</div><div class="empty-desc">All targets met. No AI recommendations at this time.</div></div>`;
+    } else {
+      el.innerHTML = p.insights.map(ins=>`<div class="ai-card ${ins.priority}">
+        <div class="ai-icon" style="background:${ins.priority==='high'?'#2a1200':ins.priority==='medium'?'#0a2a1a':'#0f1f3a'}">${ins.icon}</div>
+        <div class="ai-body">
+          <div class="ai-title-row">
+            <div class="ai-title">${ins.title}</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              ${ins.delta?`<span style="font-family:var(--mono);font-size:11px;color:var(--teal)">${ins.delta}</span>`:''}
+              ${badge(ins.priority.toUpperCase(),ins.priority==='high'?'coral':ins.priority==='medium'?'amber':'blue')}
+            </div>
+          </div>
+          <div class="ai-desc">${ins.desc}</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div class="ai-action">${ins.action}</div>
+          </div>
+        </div>
+      </div>`).join('');
+    }
+  } else if(panelTab==='gate'){
+    const allDone = p.gate.every(g=>g.status==='done');
+    el.innerHTML = `<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:14px">Production Release Checklist</div>
+    <div>${p.gate.map(g=>`<div class="checklist-item">
+      <div class="check-icon ${g.status==='done'?'done':g.status==='warn'?'warn':'fail'}">${g.status==='done'?'✓':'✕'}</div>
+      <div><div class="check-label">${g.label}</div><div class="check-detail">${g.detail}</div></div>
+    </div>`).join('')}</div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn ${allDone?'btn-primary':'btn-ghost'}" style="${!allDone?'opacity:.5;cursor:not-allowed':''}">${allDone?'Approve for Press →':'Approve for Press →'}</button>
+      <button class="btn btn-ghost">Return to Design</button>
+    </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+renderModule('portfolio');
+</script>
+</body>
+</html>
